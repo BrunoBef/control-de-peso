@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock - Sector Frío</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .tab-btn.active {
+            background-color: #ffffff;
+            color: #0284c7;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-bottom: 2px solid #0284c7;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <div>
+        <!-- Header Principal -->
+        <header class="bg-gradient-to-r from-sky-800 via-sky-700 to-indigo-900 text-white shadow-lg py-6 px-4 mb-6">
+            <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/20">
+                        <span class="text-3xl">🧀</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Control de Stock</h1>
+                        <p class="text-sky-200 text-sm font-medium flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            Sector Frío & Refrigerados
+                        </p>
+                    </div>
+                </div>
+                <!-- Quick Stats summary -->
+                <div class="flex gap-4 text-center">
+                    <div class="bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+                        <span class="text-xs text-sky-200 block uppercase tracking-wider font-semibold">Productos</span>
+                        <span id="statTotalProductos" class="text-xl font-bold">0</span>
+                    </div>
+                    <div class="bg-white/10 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/10">
+                        <span class="text-xs text-sky-200 block uppercase tracking-wider font-semibold">Kilos Totales</span>
+                        <span id="statTotalKilos" class="text-xl font-bold">0 kg</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-5xl mx-auto px-4 mb-12">
+            
+            <!-- Alert notification box -->
+            <div id="toast" class="hidden fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-xl"></i>
+                <span id="toastMessage" class="font-medium">Operación realizada con éxito</span>
+            </div>
+
+            <!-- Menú de Pestañas (Tabs) -->
+            <div class="bg-slate-200/80 p-1.5 rounded-2xl flex gap-1 mb-8 shadow-inner max-w-lg mx-auto">
+                <button id="tab-ingreso" onclick="mostrarSeccion('ingreso')" class="tab-btn active flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-box-archive text-emerald-600"></i>
+                    <span>Ingreso</span>
+                </button>
+                <button id="tab-egreso" onclick="mostrarSeccion('egreso')" class="tab-btn flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-truck-ramp-box text-amber-600"></i>
+                    <span>Egreso</span>
+                </button>
+                <button id="tab-stock" onclick="mostrarSeccion('stock')" class="tab-btn flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-chart-pie text-sky-600"></i>
+                    <span>Stock</span>
+                </button>
+            </div>
+
+            <!-- SECCIÓN: INGRESO -->
+            <section id="ingreso" class="seccion max-w-2xl mx-auto">
+                <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-circle-plus"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Ingresar Mercadería</h2>
+                            <p class="text-slate-500 text-sm">Registra una nueva entrada de hormas/cajas al frigorífico</p>
+                        </div>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); ingresarProducto();" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Nombre del Producto</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-cheese"></i>
+                                </span>
+                                <input type="text" id="productoIngreso" placeholder="Ej: Queso Lactear Cremoso" required
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Cajas</label>
+                                <input type="number" id="cajasIngreso" min="1" placeholder="Ej: 5" required oninput="calcularTotalesIngreso()"
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Hormas x Caja</label>
+                                <input type="number" id="hormasIngreso" min="1" placeholder="Ej: 4" required oninput="calcularTotalesIngreso()"
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Peso x Horma (kg)</label>
+                                <input type="number" id="pesoIngreso" step="0.001" min="0.01" placeholder="Ej: 3.850" required oninput="calcularTotalesIngreso()"
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all">
+                            </div>
+                        </div>
+
+                        <!-- Panel de Vista Previa de Cálculos -->
+                        <div class="bg-sky-50 border border-sky-100 rounded-xl p-4 flex justify-between items-center text-sm">
+                            <div>
+                                <span class="text-sky-700 block font-medium">Hormas Totales: <strong id="previewHormas" class="text-sky-900 font-bold">0</strong></span>
+                            </div>
+                            <div>
+                                <span class="text-sky-700 block font-medium">Peso Estimado Total: <strong id="previewKilos" class="text-sky-900 font-bold">0.00 kg</strong></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Confirmar Ingreso</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: EGRESO -->
+            <section id="egreso" class="seccion hidden max-w-2xl mx-auto">
+                <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-circle-minus"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Registrar Egreso</h2>
+                            <p class="text-slate-500 text-sm">Descuenta las hormas retiradas de la cámara frigorífica</p>
+                        </div>
+                    </div>
+
+                    <form onsubmit="event.preventDefault(); egresarProducto();" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Seleccionar Producto</label>
+                            <div class="relative">
+                                <select id="productoEgresoSelect" onchange="actualizarInfoEgreso()" required
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all appearance-none">
+                                    <option value="">-- Cargar o Seleccionar Producto --</option>
+                                </select>
+                                <span class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Card Informativa del Stock Disponible del Producto Seleccionado -->
+                        <div id="infoStockEgreso" class="hidden bg-amber-50/60 border border-amber-200/60 rounded-xl p-4 text-sm space-y-1">
+                            <p class="text-amber-900">Stock Actual Disponible: <strong id="egresoStockHormas" class="font-bold">0</strong> hormas</p>
+                            <p class="text-amber-800 text-xs">Peso promedio unitario: <span id="egresoPesoUnitario">0</span> kg/horma</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Cantidad de Hormas a Salir</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-hashtag"></i>
+                                </span>
+                                <input type="number" id="hormasEgreso" min="1" placeholder="Ej: 2" required
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 font-medium transition-all">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-minus"></i>
+                            <span>Registrar Salida</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- SECCIÓN: STOCK -->
+            <section id="stock" class="seccion hidden">
+                <div class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200/80">
+                    
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-800">Inventario Actual</h2>
+                                <p class="text-slate-500 text-sm">Resumen detallado de productos en cámara fría</p>
+                            </div>
+                        </div>
+
+                        <!-- Buscador en Tiempo Real -->
+                        <div class="relative min-w-[260px]">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="buscador" placeholder="Buscar producto..." oninput="mostrarStock()"
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-slate-800 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Lista de Stock -->
+                    <div id="listaStock" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Las tarjetas de productos se renderizan dinámicamente -->
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="text-center py-6 text-slate-400 text-xs border-t border-slate-200/60 bg-white">
+        <p>Sistema de Gestión de Frigorífico - Control de Stock Sector Frío</p>
+    </footer>
+
+    <script>
+        // Key de LocalStorage
+        const STORAGE_KEY = 'control_stock_frio_data';
+
+        // Estado Global de la aplicación
+        let productos = [];
+
+        // Inicialización al cargar la página
+        window.onload = function() {
+            cargarDatos();
+            mostrarStock();
+            poblardropdownEgreso();
+        };
+
+        // Guardar y Cargar Datos con localStorage
+        function cargarDatos() {
+            const dataGuardada = localStorage.getItem(STORAGE_KEY);
+            if (dataGuardada) {
+                try {
+                    productos = JSON.parse(dataGuardada);
+                } catch(e) {
+                    productos = [];
+                }
+            } else {
+                // Datos de prueba iniciales si la lista está vacía
+                productos = [
+                    { id: 1, nombre: "Lactear Cremoso", hormas: 24, pesoPromedioUnitario: 3.800 },
+                    { id: 2, nombre: "Queso Barra Tybo", hormas: 8, pesoPromedioUnitario: 4.100 },
+                    { id: 3, nombre: "Queso Sardo Saint Julien", hormas: 3, pesoPromedioUnitario: 3.200 }
+                ];
+                guardarDatos();
+            }
+            actualizarEstadisticasHeader();
+        }
+
+        function guardarDatos() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(productos));
+            actualizarEstadisticasHeader();
+            poblardropdownEgreso();
+        }
+
+        // Navegación entre Pestañas
+        function mostrarSeccion(idSeccion) {
+            document.querySelectorAll('.seccion').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            const seccionMostrar = document.getElementById(idSeccion);
+            const tabActivo = document.getElementById(`tab-${idSeccion}`);
+
+            if (seccionMostrar) seccionMostrar.classList.remove('hidden');
+            if (tabActivo) tabActivo.classList.add('active');
+
+            if (idSeccion === 'stock') {
+                mostrarStock();
+            }
+        }
+
+        // Mostrar Toast Feedback
+        function mostrarNotificacion(mensaje, tipo = 'exito') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = mensaje;
+
+            if (tipo === 'exito') {
+                toast.className = "fixed top-5 right-5 z-50 max-w-md bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-0";
+                toastIcon.className = "fa-solid fa-circle-check text-xl";
+            } else {
+                toast.className = "fixed top-5 right-5 z-50 max-w-md bg-rose-600 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-0";
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-xl";
+            }
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Cálculo automático de pre-vista en formulario Ingreso
+        function calcularTotalesIngreso() {
+            const cajas = parseFloat(document.getElementById('cajasIngreso').value) || 0;
+            const hormasXCaja = parseFloat(document.getElementById('hormasIngreso').value) || 0;
+            const pesoHorma = parseFloat(document.getElementById('pesoIngreso').value) || 0;
+
+            const totalHormas = cajas * hormasXCaja;
+            const totalKilos = totalHormas * pesoHorma;
+
+            document.getElementById('previewHormas').innerText = totalHormas;
+            document.getElementById('previewKilos').innerText = totalKilos.toFixed(2) + ' kg';
+        }
+
+        // Agregar Producto / Ingreso
+        function ingresarProducto() {
+            const nombre = document.getElementById('productoIngreso').value.trim();
+            const cajas = parseInt(document.getElementById('cajasIngreso').value);
+            const hormasXCaja = parseInt(document.getElementById('hormasIngreso').value);
+            const pesoHorma = parseFloat(document.getElementById('pesoIngreso').value);
+
+            if (!nombre || isNaN(cajas) || isNaN(hormasXCaja) || isNaN(pesoHorma)) {
+                mostrarNotificacion('Por favor completa todos los campos correctamente.', 'error');
+                return;
+            }
+
+            const hormasNuevas = cajas * hormasXCaja;
+            const indexExistente = productos.findIndex(p => p.nombre.toLowerCase() === nombre.toLowerCase());
+
+            if (indexExistente !== -1) {
+                // Actualizar Promedio Ponderado de Peso por Horma
+                const prod = productos[indexExistente];
+                const pesoTotalExistente = prod.hormas * prod.pesoPromedioUnitario;
+                const pesoTotalNuevo = hormasNuevas * pesoHorma;
+                
+                prod.hormas += hormasNuevas;
+                prod.pesoPromedioUnitario = (pesoTotalExistente + pesoTotalNuevo) / prod.hormas;
+            } else {
+                productos.push({
+                    id: Date.now(),
+                    nombre: nombre,
+                    hormas: hormasNuevas,
+                    pesoPromedioUnitario: pesoHorma
+                });
+            }
+
+            guardarDatos();
+            mostrarNotificacion(`Ingreso registrado: ${hormasNuevas} hormas de "${nombre}"`);
+
+            // Limpiar Formulario
+            document.getElementById('productoIngreso').value = '';
+            document.getElementById('cajasIngreso').value = '';
+            document.getElementById('hormasIngreso').value = '';
+            document.getElementById('pesoIngreso').value = '';
+            calcularTotalesIngreso();
+        }
+
+        // Popular Dropdown de Egresos
+        function poblardropdownEgreso() {
+            const select = document.getElementById('productoEgresoSelect');
+            select.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
+
+            productos.forEach(p => {
+                if (p.hormas > 0) {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = `${p.nombre} (${p.hormas} hormas disponibles)`;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        function actualizarInfoEgreso() {
+            const select = document.getElementById('productoEgresoSelect');
+            const infoBox = document.getElementById('infoStockEgreso');
+            const idSelected = select.value;
+
+            if (!idSelected) {
+                infoBox.classList.add('hidden');
+                return;
+            }
+
+            const prod = productos.find(p => p.id == idSelected);
+            if (prod) {
+                document.getElementById('egresoStockHormas').innerText = prod.hormas;
+                document.getElementById('egresoPesoUnitario').innerText = prod.pesoPromedioUnitario.toFixed(3);
+                infoBox.classList.remove('hidden');
+            }
+        }
+
+        // Registrar Egreso
+        function egresarProducto() {
+            const select = document.getElementById('productoEgresoSelect');
+            const idProd = select.value;
+            const hormasEgreso = parseInt(document.getElementById('hormasEgreso').value);
+
+            if (!idProd) {
+                mostrarNotificacion('Por favor selecciona un producto.', 'error');
+                return;
+            }
+
+            const prod = productos.find(p => p.id == idProd);
+
+            if (!prod) return;
+
+            if (isNaN(hormasEgreso) || hormasEgreso <= 0) {
+                mostrarNotificacion('Ingresa una cantidad válida de hormas.', 'error');
+                return;
+            }
+
+            if (hormasEgreso > prod.hormas) {
+                mostrarNotificacion(`No hay suficiente stock. Disponible: ${prod.hormas} hormas.`, 'error');
+                return;
+            }
+
+            // Descontar
+            prod.hormas -= hormasEgreso;
+            guardarDatos();
+
+            mostrarNotificacion(`Egreso registrado: ${hormasEgreso} hormas de "${prod.nombre}"`);
+
+            document.getElementById('hormasEgreso').value = '';
+            actualizarInfoEgreso();
+        }
+
+        // Renderizar Lista de Stock y Búsqueda
+        function mostrarStock() {
+            const contenedor = document.getElementById('listaStock');
+            const busqueda = (document.getElementById('buscador').value || '').toLowerCase();
+
+            const productosFiltrados = productos.filter(p => p.nombre.toLowerCase().includes(busqueda));
+
+            if (productosFiltrados.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-box-open text-4xl mb-3 block opacity-50"></i>
+                        <p class="font-medium text-slate-500">No se encontraron productos en stock</p>
+                    </div>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = productosFiltrados.map(p => {
+                const kilosTotales = (p.hormas * p.pesoPromedioUnitario).toFixed(2);
+                
+                // Determinar Estado del Stock (Badge)
+                let badgeHTML = '';
+                if (p.hormas === 0) {
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">Sin Stock</span>`;
+                } else if (p.hormas <= 5) {
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Stock Bajo</span>`;
+                } else {
+                    badgeHTML = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Normal</span>`;
+                }
+
+                return `
+                    <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-5 hover:border-sky-300 hover:shadow-md transition-all duration-200">
+                        <div class="flex justify-between items-start gap-2 mb-3">
+                            <h3 class="font-bold text-slate-800 text-lg leading-snug">${p.nombre}</h3>
+                            ${badgeHTML}
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 py-3 border-y border-slate-200/60 my-3 text-sm">
+                            <div>
+                                <span class="text-xs text-slate-400 block font-medium">Hormas</span>
+                                <span class="text-xl font-bold text-slate-700">${p.hormas}</span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 block font-medium">Kilos Est.</span>
+                                <span class="text-xl font-bold text-sky-700">${kilosTotales} <span class="text-xs font-normal">kg</span></span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs text-slate-500 pt-1">
+                            <span>Prom. Unitario: <strong>${p.pesoPromedioUnitario.toFixed(3)} kg</strong></span>
+                            <button onclick="eliminarProducto(${p.id})" class="text-slate-400 hover:text-rose-600 transition-colors p-1" title="Eliminar Producto">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function eliminarProducto(id) {
+            if (confirm('¿Estás seguro de que deseas eliminar este registro de producto?')) {
+                productos = productos.filter(p => p.id !== id);
+                guardarDatos();
+                mostrarStock();
+                mostrarNotificacion('Producto eliminado correctamente');
+            }
+        }
+
+        // Estadísticas Header
+        function actualizarEstadisticasHeader() {
+            const totalProds = productos.length;
+            const totalKg = productos.reduce((acc, p) => acc + (p.hormas * p.pesoPromedioUnitario), 0);
+
+            document.getElementById('statTotalProductos').innerText = totalProds;
+            document.getElementById('statTotalKilos').innerText = totalKg.toFixed(1) + ' kg';
+        }
+    </script>
+</body>
+</html>
